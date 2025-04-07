@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Job Portal for Freshers
 
 A modern job portal application built with React, designed specifically for fresh graduates to find their dream jobs.
@@ -77,3 +78,7 @@ The application uses a mock API endpoint. To integrate with a real backend:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details. 
+=======
+# job-portal
+it is usefull for geting job easily
+>>>>>>> 91919688d472d10607f860010c68d882c42e4d50
