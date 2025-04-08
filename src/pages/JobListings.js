@@ -4,6 +4,8 @@ import axios from 'axios';
 import JobCard from '../components/JobCard';
 import SearchBar from '../components/SearchBar';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import { jobsData } from '../data/jobsData';
+import { useSearchParams } from 'react-router-dom';
 
 const JobListings = () => {
     const [jobs, setJobs] = useState([]);
@@ -13,80 +15,150 @@ const JobListings = () => {
     const [location, setLocation] = useState('');
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-    const [currentQuery, setCurrentQuery] = useState('Software Developer in India');
+    const [usingFallbackData, setUsingFallbackData] = useState(false);
+    const [searchParams] = useSearchParams();
 
-    const fetchJobs = async (query = currentQuery, pageNum = 1, isNewSearch = false) => {
-        const options = {
-            method: 'GET',
-            url: 'https://jsearch.p.rapidapi.com/search',
-            params: {
-                query: query,
-                page: pageNum.toString(),
-                num_pages: '1',
-                date_posted: 'all'
-            },
-            headers: {
-                'X-RapidAPI-Key': 'e09cede52dmsh581a47e5d817d93p16ffaejsn51e0434c6a96',
-                'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+    const categoryFilter = searchParams.get('category');
+
+    const filterJobsByCategory = (jobsToFilter) => {
+        if (!categoryFilter) return jobsToFilter;
+
+        return jobsToFilter.filter(job => {
+            const title = job.job_title.toLowerCase();
+            const description = job.job_description.toLowerCase();
+
+            switch (categoryFilter) {
+                case 'software':
+                    return title.includes('software') ||
+                        title.includes('engineer') ||
+                        title.includes('developer') ||
+                        description.includes('software development');
+                case 'data':
+                    return title.includes('data') ||
+                        title.includes('analyst') ||
+                        title.includes('scientist') ||
+                        description.includes('data analysis');
+                case 'marketing':
+                    return title.includes('marketing') ||
+                        title.includes('sales') ||
+                        title.includes('growth') ||
+                        description.includes('marketing');
+                case 'design':
+                    return title.includes('design') ||
+                        title.includes('ui') ||
+                        title.includes('ux') ||
+                        description.includes('design');
+                case 'management':
+                    return title.includes('manager') ||
+                        title.includes('lead') ||
+                        title.includes('head') ||
+                        description.includes('management');
+                default:
+                    return true;
             }
-        };
+        });
+    };
 
+    const filterJobsBySearch = (jobsToFilter) => {
+        if (!searchTerm && !location) return jobsToFilter;
+
+        return jobsToFilter.filter(job => {
+            const matchesSearch = !searchTerm ||
+                job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.job_description.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesLocation = !location ||
+                (job.job_city && job.job_city.toLowerCase().includes(location.toLowerCase())) ||
+                (job.job_country && job.job_country.toLowerCase().includes(location.toLowerCase()));
+
+            return matchesSearch && matchesLocation;
+        });
+    };
+
+    const fetchJobs = async (pageNum = 1, isNewSearch = false) => {
         try {
             if (pageNum === 1) {
                 setLoading(true);
             }
             setError('');
 
+            const options = {
+                method: 'GET',
+                url: 'https://jsearch.p.rapidapi.com/search',
+                params: {
+                    query: searchTerm || 'Software Developer in India',
+                    page: pageNum.toString(),
+                    num_pages: '1'
+                },
+                headers: {
+                    'X-RapidAPI-Key': 'e09cede52dmsh581a47e5d817d93p16ffaejsn51e0434c6a96',
+                    'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+                }
+            };
+
             const response = await axios.request(options);
 
             if (response.data && response.data.data) {
+                let filteredJobs = filterJobsByCategory(response.data.data);
+                filteredJobs = filterJobsBySearch(filteredJobs);
+
                 if (isNewSearch) {
-                    setJobs(response.data.data);
+                    setJobs(filteredJobs);
                 } else {
-                    setJobs(prevJobs => [...prevJobs, ...response.data.data]);
+                    setJobs(prev => [...prev, ...filteredJobs]);
                 }
 
-                // If we received fewer items than expected, there are no more jobs to load
-                setHasMore(response.data.data.length >= 10);
+                setHasMore(filteredJobs.length >= 10);
+                setUsingFallbackData(false);
             } else {
                 throw new Error('No data received from API');
             }
         } catch (error) {
             console.error('Error fetching jobs:', error);
-            setError(error.response?.data?.message || 'Failed to load jobs');
-            setHasMore(false);
+            if (pageNum === 1) {
+                let filteredFallbackJobs = filterJobsByCategory(jobsData);
+                filteredFallbackJobs = filterJobsBySearch(filteredFallbackJobs);
+                setJobs(filteredFallbackJobs);
+                setUsingFallbackData(true);
+                setHasMore(false);
+            }
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchJobs(currentQuery, 1, true);
-    }, []);
+        fetchJobs(1, true);
+    }, [categoryFilter]); // Refetch when category changes
 
     const handleSearch = () => {
-        const searchQuery = `${searchTerm} ${location ? 'in ' + location : ''}`.trim();
-        setCurrentQuery(searchQuery || 'Software Developer in India');
         setPage(1);
-        fetchJobs(searchQuery || 'Software Developer in India', 1, true);
+        fetchJobs(1, true);
     };
 
     const loadMore = () => {
-        const nextPage = page + 1;
-        setPage(nextPage);
-        fetchJobs(currentQuery, nextPage, false);
+        if (!usingFallbackData) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            fetchJobs(nextPage, false);
+        }
     };
-
-    const LoadingSpinner = () => (
-        <div className="flex items-center justify-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>
-    );
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">Job Listings</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                    {categoryFilter
+                        ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)} Jobs`
+                        : 'All Jobs'}
+                </h1>
+                {usingFallbackData && (
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                        <p className="text-sm text-yellow-700">
+                            Currently showing sample job listings. Live job data is temporarily unavailable.
+                        </p>
+                    </div>
+                )}
                 <SearchBar
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
@@ -97,16 +169,8 @@ const JobListings = () => {
             </div>
 
             {loading && page === 1 ? (
-                <LoadingSpinner />
-            ) : error ? (
-                <div className="text-center py-8">
-                    <p className="text-red-600 mb-4">{error}</p>
-                    <button
-                        onClick={() => fetchJobs(currentQuery, 1, true)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                    >
-                        Try Again
-                    </button>
+                <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                 </div>
             ) : jobs.length === 0 ? (
                 <div className="text-center py-8">
@@ -116,10 +180,12 @@ const JobListings = () => {
                 <InfiniteScroll
                     dataLength={jobs.length}
                     next={loadMore}
-                    hasMore={hasMore}
-                    loader={<LoadingSpinner />}
-                    endMessage={null} // Removed the end message
-                    scrollThreshold="90%"
+                    hasMore={!usingFallbackData && hasMore}
+                    loader={
+                        <div className="flex justify-center py-4">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        </div>
+                    }
                 >
                     <div className="grid grid-cols-1 gap-6">
                         {jobs.map((job, index) => (
@@ -135,7 +201,9 @@ const JobListings = () => {
                                         job.job_highlights?.Qualifications ||
                                         job.job_highlights?.Requirements ||
                                         [],
-                                    salary: job.job_salary || 'Salary not specified',
+                                    job_min_salary: job.job_min_salary,
+                                    job_max_salary: job.job_max_salary,
+                                    job_salary_currency: job.job_salary_currency,
                                     type: job.job_employment_type || 'Full-time',
                                     createdAt: job.job_posted_at_datetime_utc,
                                     url: job.job_apply_link
@@ -145,8 +213,9 @@ const JobListings = () => {
                     </div>
                 </InfiniteScroll>
             )}
+
         </div>
     );
 };
 
-export default JobListings;
+export default JobListings; 

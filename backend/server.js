@@ -25,6 +25,24 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// Backend job schema should match these fields
+const jobSchema = {
+    job_title: String,
+    employer_name: String,
+    job_city: String,
+    job_country: String,
+    job_description: String,
+    job_highlights: {
+        Qualifications: [String]
+    },
+    job_employment_type: String,
+    job_salary_currency: String,
+    job_min_salary: Number,
+    job_max_salary: Number,
+    job_apply_link: String,
+    job_posted_at_datetime_utc: Date
+};
+
 // Register Route
 app.post('/api/auth/register', async (req, res) => {
     try {

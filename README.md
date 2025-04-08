@@ -82,3 +82,36 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 # job-portal
 it is usefull for geting job easily
 >>>>>>> 91919688d472d10607f860010c68d882c42e4d50
+
+
+# Deployment Instructions
+
+## Prerequisites
+- Node.js 14+ installed
+- MongoDB account
+- Hosting platform account (Vercel/Netlify for frontend, Render/Railway for backend)
+
+## Frontend Deployment (Vercel)
+1. Push your code to GitHub
+2. Connect your GitHub repository to Vercel
+3. Set up environment variables in Vercel dashboard
+4. Deploy
+
+## Backend Deployment (Render)
+1. Push your code to GitHub
+2. Connect your GitHub repository to Render
+3. Set up environment variables in Render dashboard
+4. Deploy
+
+## Environment Variables Required
+Frontend:
+- REACT_APP_API_URL
+- REACT_APP_RAPID_API_KEY
+- REACT_APP_RAPID_API_HOST
+
+Backend:
+- NODE_ENV
+- PORT
+- MONGODB_URI
+- JWT_SECRET
+- FRONTEND_URL
