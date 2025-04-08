@@ -1,33 +1,40 @@
+// src/components/SearchBar.js
 import React from 'react';
 
 const SearchBar = ({ searchTerm, setSearchTerm, location, setLocation, onSearch }) => {
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSearch();
+    };
+
     return (
-        <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Find Your Next Opportunity</h1>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
                 <input
                     type="text"
-                    placeholder="Search jobs..."
-                    className="border border-gray-300 rounded-md px-4 py-2"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Job title or keywords"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
+            </div>
+            <div className="flex-1">
                 <input
                     type="text"
-                    placeholder="Location"
-                    className="border border-gray-300 rounded-md px-4 py-2"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Location (optional)"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
-                <button
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                    onClick={onSearch}
-                >
-                    Search
-                </button>
             </div>
-        </div>
+            <button
+                type="submit"
+                className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+                Search
+            </button>
+        </form>
     );
 };
 
-export default SearchBar; 
+export default SearchBar;
